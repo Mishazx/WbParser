@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class ProductCreate(BaseModel):
     artikul: str
@@ -10,5 +10,4 @@ class ProductResponse(BaseModel):
     rating: float
     total_quantity: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
