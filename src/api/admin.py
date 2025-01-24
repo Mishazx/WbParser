@@ -1,28 +1,53 @@
-from sqladmin import ModelView, Admin
-from models import Product, TaskLog, ApiKey, Subscription
-import secrets
-import uuid
-from typing import Any
-from db import AsyncSessionLocal
-from crud import create_api_key
+from sqladmin import ModelView
+from models import Product, PriceHistory, Subscription, TaskLog, ApiKey, UserSubscription
 
 class ProductAdmin(ModelView, model=Product):
     column_list = [
-        Product.id, 
-        Product.artikul, 
-        Product.name, 
+        Product.id,
+        Product.name,
+        Product.artikul,
         Product.price,
         Product.rating,
-        Product.total_quantity
+        Product.total_quantity,
+        Product.created_at,
+        Product.updated_at
     ]
-    column_labels = {
-        Product.id: "ID",
-        Product.artikul: "Артикул",
-        Product.name: "Название",
-        Product.price: "Цена",
-        Product.rating: "Рейтинг",
-        Product.total_quantity: "Количество"
-    }
+    column_searchable_list = [Product.name, Product.artikul]
+    column_sortable_list = [Product.id, Product.price, Product.rating, Product.total_quantity]
+    column_default_sort = ("updated_at", True)
+    name = "Товар"
+    name_plural = "Товары"
+    icon = "fa-shopping-cart"
+
+class PriceHistoryAdmin(ModelView, model=PriceHistory):
+    column_list = [
+        PriceHistory.id,
+        PriceHistory.product_id,
+        PriceHistory.price,
+        PriceHistory.total_quantity,
+        PriceHistory.created_at
+    ]
+    column_sortable_list = [PriceHistory.id, PriceHistory.price, PriceHistory.created_at]
+    column_default_sort = ("created_at", True)
+    name = "История цен"
+    name_plural = "История цен"
+    icon = "fa-history"
+
+class SubscriptionAdmin(ModelView, model=Subscription):
+    column_list = [
+        Subscription.id,
+        Subscription.artikul,
+        Subscription.is_active,
+        Subscription.frequency_minutes,
+        Subscription.last_checked_at,
+        Subscription.created_at
+    ]
+    column_searchable_list = [Subscription.artikul]
+    column_sortable_list = [Subscription.id, Subscription.last_checked_at]
+    column_default_sort = ("created_at", True)
+    name = "Подписка"
+    name_plural = "Подписки"
+    icon = "fa-bell"
 
 class TaskLogAdmin(ModelView, model=TaskLog):
     column_list = [
@@ -32,18 +57,12 @@ class TaskLogAdmin(ModelView, model=TaskLog):
         TaskLog.message,
         TaskLog.created_at
     ]
-    column_labels = {
-        TaskLog.id: "ID",
-        TaskLog.artikul: "Артикул",
-        TaskLog.status: "Статус",
-        TaskLog.message: "Сообщение",
-        TaskLog.created_at: "Время создания"
-    }
-    can_create = False
-    can_edit = False
-    can_delete = False
-    column_sortable_list = [TaskLog.created_at]
-    column_default_sort = ('created_at', True)
+    column_searchable_list = [TaskLog.artikul, TaskLog.status]
+    column_sortable_list = [TaskLog.id, TaskLog.created_at]
+    column_default_sort = ("created_at", True)
+    name = "Лог задач"
+    name_plural = "Логи задач"
+    icon = "fa-list"
 
 class ApiKeyAdmin(ModelView, model=ApiKey):
     column_list = [
@@ -53,35 +72,23 @@ class ApiKeyAdmin(ModelView, model=ApiKey):
         ApiKey.is_active,
         ApiKey.created_at
     ]
-    column_labels = {
-        ApiKey.id: "ID",
-        ApiKey.key: "API Ключ",
-        ApiKey.name: "Название",
-        ApiKey.is_active: "Активен",
-        ApiKey.created_at: "Создан"
-    }
-    
-    form_excluded_columns = [ApiKey.key, ApiKey.created_at]
-    
-    can_delete = False
-    can_edit = False
-    can_create = False
+    column_searchable_list = [ApiKey.name]
+    column_sortable_list = [ApiKey.id, ApiKey.created_at]
+    column_default_sort = ("created_at", True)
+    name = "API ключ"
+    name_plural = "API ключи"
+    icon = "fa-key"
 
-class SubscriptionAdmin(ModelView, model=Subscription):
+class UserSubscriptionAdmin(ModelView, model=UserSubscription):
     column_list = [
-        Subscription.id,
-        Subscription.artikul,
-        Subscription.is_active,
-        Subscription.frequency_minutes,
-        Subscription.last_checked_at
+        UserSubscription.id,
+        UserSubscription.chat_id,
+        UserSubscription.artikul,
+        UserSubscription.created_at
     ]
-    column_labels = {
-        Subscription.id: "ID",
-        Subscription.artikul: "Артикул",
-        Subscription.is_active: "Активен",
-        Subscription.frequency_minutes: "Частота (минуты)",
-        Subscription.last_checked_at: "Последняя проверка"
-    }
-    can_create = True
-    can_edit = True
-    can_delete = True
+    column_searchable_list = [UserSubscription.chat_id, UserSubscription.artikul]
+    column_sortable_list = [UserSubscription.id, UserSubscription.created_at]
+    column_default_sort = ("created_at", True)
+    name = "Подписка пользователя"
+    name_plural = "Подписки пользователей"
+    icon = "fa-users"

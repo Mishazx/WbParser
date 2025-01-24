@@ -4,6 +4,8 @@ pydantic
 uvicorn
 asyncpg
 httpx
-apscheduler
+apscheduler>=3.10.1
 sqladmin
 psycopg2-binary==2.9.9
+aiohttp
+python-dotenv
