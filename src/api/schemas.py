@@ -31,9 +31,19 @@ class ProductResponse(BaseModel):
     @field_validator('price')
     @classmethod
     def validate_price(cls, v: float) -> float:
-        if v > 1000000:  # Максимальная цена 1 млн рублей
-            raise ValueError("Цена не может быть больше 1,000,000 рублей")
+        if v > 10000000:  # Максимальная цена 10 млн рублей
+            raise ValueError("Цена не может быть больше 10,000,000 рублей")
         return round(v, 2)  # Округляем до копеек
+
+class SubscriptionCreate(BaseModel):
+    artikul: str
+    chat_id: str
+    frequency_minutes: int
+
+class UserSubscriptionResponse(BaseModel):
+    chat_id: str
+    artikul: str
+    created_at: datetime
 
 class SubscriptionResponse(BaseModel):
     artikul: str = Field(..., min_length=1, max_length=15)

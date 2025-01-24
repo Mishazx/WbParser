@@ -11,6 +11,8 @@ from schemas import (
     ProductCreate, 
     ProductResponse, 
     SubscriptionResponse, 
+    SubscriptionCreate,
+    UserSubscriptionResponse,
     UpdateFrequencyRequest,
     ErrorResponse,
     RateLimitResponse,
@@ -21,15 +23,7 @@ from models import ApiKey, Product, PriceHistory, Subscription, TaskLog, UserSub
 
 router_product = APIRouter(tags=["Products"])
 
-class SubscriptionCreate(BaseModel):
-    artikul: str
-    chat_id: str
-    frequency_minutes: int
 
-class UserSubscriptionResponse(BaseModel):
-    chat_id: str
-    artikul: str
-    created_at: datetime
 
 @router_product.post(
     "/api/v1/products", 
@@ -342,10 +336,40 @@ async def get_price_history(
         history=price_history
     )
 
-@router_product.post("/api/v1/subscriptions", response_model=UserSubscriptionResponse)
+@router_product.post(
+    "/api/v1/subscriptions", 
+    response_model=UserSubscriptionResponse,
+    summary="Создать подписку пользователя на товар",
+    description="""
+    Создает подписку пользователя на товар и настраивает частоту обновлений.
+    
+    - Если подписка уже существует, обновляет её параметры
+    - Создает или активирует основную подписку на товар
+    - Устанавливает частоту обновлений для товара
+    """,
+    responses={
+        200: {
+            "description": "Подписка успешно создана",
+            "model": UserSubscriptionResponse
+        },
+        400: {
+            "description": "Неверные параметры запроса",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Товар не найден",
+            "model": ErrorResponse
+        },
+        429: {
+            "description": "Превышен лимит запросов",
+            "model": RateLimitResponse
+        }
+    }
+)
 async def create_user_subscription(
     subscription: SubscriptionCreate,
-    session: AsyncSession = Depends(get_db)
+    session: AsyncSession = Depends(get_db),
+    api_key: ApiKey = get_api_key()
 ):
     # Проверяем существование товара
     product = await session.execute(
@@ -373,7 +397,6 @@ async def create_user_subscription(
         )
         session.add(user_sub)
 
-    # Создаем или обновляем основную подписку
     sub = await session.execute(
         select(Subscription).where(Subscription.artikul == subscription.artikul)
     )
@@ -392,10 +415,35 @@ async def create_user_subscription(
     await session.commit()
     return user_sub
 
-@router_product.get("/api/v1/subscriptions/{artikul}/users", response_model=List[UserSubscriptionResponse])
+@router_product.get(
+    "/api/v1/subscriptions/{artikul}/users", 
+    response_model=List[UserSubscriptionResponse],
+    summary="Получить список подписчиков товара",
+    description="""
+    Возвращает список всех пользователей, подписанных на товар.
+    
+    - Используется для отправки уведомлений
+    - Включает chat_id пользователей Telegram
+    """,
+    responses={
+        200: {
+            "description": "Список подписчиков",
+            "model": List[UserSubscriptionResponse]
+        },
+        401: {
+            "description": "Неверный API ключ",
+            "model": ErrorResponse
+        },
+        429: {
+            "description": "Превышен лимит запросов",
+            "model": RateLimitResponse
+        }
+    }
+)
 async def get_subscription_users(
     artikul: str = Path(..., description="Артикул товара"),
-    session: AsyncSession = Depends(get_db)
+    session: AsyncSession = Depends(get_db),
+    api_key: ApiKey = get_api_key()
 ):
     result = await session.execute(
         select(UserSubscription).where(UserSubscription.artikul == artikul)
@@ -403,11 +451,39 @@ async def get_subscription_users(
     subscriptions = result.scalars().all()
     return subscriptions
 
-@router_product.delete("/api/v1/subscriptions/{artikul}/users/{chat_id}")
+@router_product.delete(
+    "/api/v1/subscriptions/{artikul}/users/{chat_id}",
+    summary="Отменить подписку пользователя",
+    description="""
+    Удаляет подписку пользователя на товар.
+    
+    - Если это последний подписчик, деактивирует основную подписку
+    - Не удаляет историю цен товара
+    """,
+    responses={
+        200: {
+            "description": "Подписка успешно удалена",
+            "content": {
+                "application/json": {
+                    "example": {"status": "success"}
+                }
+            }
+        },
+        404: {
+            "description": "Подписка не найдена",
+            "model": ErrorResponse
+        },
+        429: {
+            "description": "Превышен лимит запросов",
+            "model": RateLimitResponse
+        }
+    }
+)
 async def delete_user_subscription(
     artikul: str = Path(..., description="Артикул товара"),
     chat_id: str = Path(..., description="ID чата пользователя"),
-    session: AsyncSession = Depends(get_db)
+    session: AsyncSession = Depends(get_db),
+    api_key: ApiKey = get_api_key()
 ):
     result = await session.execute(
         delete(UserSubscription).where(
@@ -437,18 +513,39 @@ async def delete_user_subscription(
     await session.commit()
     return {"status": "success"}
 
-@router_product.get("/api/v1/subscriptions/user/{chat_id}", response_model=List[UserSubscriptionResponse])
+@router_product.get(
+    "/api/v1/subscriptions/user/{chat_id}",
+    response_model=List[UserSubscriptionResponse],
+    summary="Получить подписки пользователя",
+    description="""
+    Возвращает список всех подписок конкретного пользователя.
+    
+    - Включает все активные подписки
+    - Сортировка по дате создания
+    """,
+    responses={
+        200: {
+            "description": "Список подписок пользователя",
+            "model": List[UserSubscriptionResponse]
+        },
+        401: {
+            "description": "Неверный API ключ",
+            "model": ErrorResponse
+        },
+        429: {
+            "description": "Превышен лимит запросов",
+            "model": RateLimitResponse
+        }
+    }
+)
 async def get_user_subscriptions(
     chat_id: str = Path(..., description="ID чата пользователя"),
-    session: AsyncSession = Depends(get_db)
+    session: AsyncSession = Depends(get_db),
+    api_key: ApiKey = get_api_key()
 ):
-    """
-    Получить список всех подписок пользователя
-    """
     result = await session.execute(
         select(UserSubscription)
         .where(UserSubscription.chat_id == chat_id)
         .order_by(UserSubscription.created_at.desc())
     )
-    subscriptions = result.scalars().all()
-    return subscriptions
+    return result.scalars().all()
