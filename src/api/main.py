@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request, HTTPException
 from sqladmin import Admin
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import secrets
+from sqlalchemy import select
 
 from admin import (
     ProductAdmin,
@@ -13,11 +15,12 @@ from admin import (
     ApiKeyAdmin,
     UserSubscriptionAdmin
 )
-from db import connect_with_retries, SyncEngine, AsyncEngine
+from db import connect_with_retries, SyncEngine, AsyncEngine, AsyncSessionLocal
 from router import router_product
 from middleware import rate_limit_middleware
 from scheduler import start_scheduler
 from exception import WildberriesAPIError, ProductNotFoundError, WildberriesTimeoutError, WildberriesResponseError
+from models import ApiKey
 
 # Настройка логирования
 logging.basicConfig(
@@ -29,6 +32,34 @@ logger = logging.getLogger(__name__)
 
 # Глобальная переменная для хранения планировщика
 scheduler = None
+
+async def ensure_api_key_exists():
+    """Проверяет наличие активного API ключа и создает его при необходимости"""
+    async with AsyncSessionLocal() as session:
+        # Проверяем наличие активного ключа
+        result = await session.execute(
+            select(ApiKey).where(ApiKey.is_active == True)
+        )
+        api_key = result.scalar_one_or_none()
+        
+        if not api_key:
+            # Создаем новый ключ
+            new_key = secrets.token_urlsafe(32)
+            api_key = ApiKey(key=new_key, is_active=True)
+            session.add(api_key)
+            await session.commit()
+            
+            print("\n" + "="*50)
+            print("New API Key generated:")
+            print(new_key)
+            print("="*50 + "\n")
+            logger.info("Created new API key")
+        else:
+            print("\n" + "="*50)
+            print("Using existing API Key:")
+            print(api_key.key)
+            print("="*50 + "\n")
+            logger.info("Using existing API key")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,6 +73,9 @@ async def lifespan(app: FastAPI):
         # Подключаемся к базе данных
         await connect_with_retries()
         logger.info("Successfully connected to database")
+        
+        # Проверяем/создаем API ключ
+        await ensure_api_key_exists()
         
         # Запускаем планировщик задач
         logger.info("Starting scheduler...")

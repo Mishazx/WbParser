@@ -19,7 +19,7 @@ from schemas import (
     ProductPriceHistory
 )
 from auth import get_api_key
-from models import ApiKey, Product, PriceHistory, Subscription, TaskLog, UserSubscription
+from models import Product, PriceHistory, Subscription, TaskLog, UserSubscription
 
 router_product = APIRouter(tags=["Products"])
 
@@ -61,7 +61,7 @@ router_product = APIRouter(tags=["Products"])
 async def create_product_endpoint(
     product: ProductCreate, 
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     create_product_data = await create_product(db, product)
     if isinstance(create_product_data, dict) and create_product_data.get("status") == "Product not found":
@@ -110,7 +110,7 @@ async def subscribe_to_product(
         examples=["303265098"]
     ),
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     if not artikul.isdigit():
         raise HTTPException(
@@ -150,7 +150,7 @@ async def get_all_products_endpoint(
     skip: int = Query(0, ge=0, description="Количество пропускаемых записей"),
     limit: int = Query(100, ge=1, le=1000, description="Максимальное количество возвращаемых записей"),
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     try:
         products = await get_all_products(db)
@@ -205,7 +205,7 @@ async def update_subscription_frequency_endpoint(
     ),
     request: UpdateFrequencyRequest = None,
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     if not artikul.isdigit():
         raise HTTPException(
@@ -246,7 +246,7 @@ async def get_all_subscriptions_endpoint(
     limit: int = Query(100, ge=1, le=1000, description="Максимальное количество возвращаемых записей"),
     active_only: bool = Query(False, description="Показывать только активные подписки"),
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     try:
         subscriptions = await get_all_subscriptions(db)
@@ -302,7 +302,7 @@ async def get_price_history(
         examples=["303265098"]
     ),
     db: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     if not artikul.isdigit():
         raise HTTPException(
@@ -369,7 +369,7 @@ async def get_price_history(
 async def create_user_subscription(
     subscription: SubscriptionCreate,
     session: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     # Проверяем существование товара
     product = await session.execute(
@@ -443,7 +443,7 @@ async def create_user_subscription(
 async def get_subscription_users(
     artikul: str = Path(..., description="Артикул товара"),
     session: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     result = await session.execute(
         select(UserSubscription).where(UserSubscription.artikul == artikul)
@@ -483,7 +483,7 @@ async def delete_user_subscription(
     artikul: str = Path(..., description="Артикул товара"),
     chat_id: str = Path(..., description="ID чата пользователя"),
     session: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     result = await session.execute(
         delete(UserSubscription).where(
@@ -541,7 +541,7 @@ async def delete_user_subscription(
 async def get_user_subscriptions(
     chat_id: str = Path(..., description="ID чата пользователя"),
     session: AsyncSession = Depends(get_db),
-    api_key: ApiKey = get_api_key()
+    api_key: str = Depends(get_api_key)
 ):
     result = await session.execute(
         select(UserSubscription)
