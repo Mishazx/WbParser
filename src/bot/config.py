@@ -14,7 +14,7 @@ load_dotenv()
 # Инициализация глобальных переменных
 BOT_API_TOKEN = os.getenv('BOT_TOKEN')
 API_TOKEN = os.getenv('API_TOKEN')
-API_URL = os.getenv('API_URL', 'http://app/api/v1')
+API_URL = os.getenv('API_URL', 'http://app:8888/api/v1')
 
 # Настройки запросов
 HEADERS = {
