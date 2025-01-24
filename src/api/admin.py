@@ -18,6 +18,9 @@ class ProductAdmin(ModelView, model=Product):
     name = "Товар"
     name_plural = "Товары"
     icon = "fa-shopping-cart"
+    can_create = False
+    can_edit = False
+    can_delete = False
 
 class PriceHistoryAdmin(ModelView, model=PriceHistory):
     column_list = [
@@ -32,6 +35,9 @@ class PriceHistoryAdmin(ModelView, model=PriceHistory):
     name = "История цен"
     name_plural = "История цен"
     icon = "fa-history"
+    can_create = False
+    can_edit = False
+    can_delete = False
 
 class SubscriptionAdmin(ModelView, model=Subscription):
     column_list = [
@@ -48,6 +54,9 @@ class SubscriptionAdmin(ModelView, model=Subscription):
     name = "Подписка"
     name_plural = "Подписки"
     icon = "fa-bell"
+    can_create = False
+    can_edit = False
+    can_delete = False
 
 class TaskLogAdmin(ModelView, model=TaskLog):
     column_list = [
@@ -63,6 +72,9 @@ class TaskLogAdmin(ModelView, model=TaskLog):
     name = "Лог задач"
     name_plural = "Логи задач"
     icon = "fa-list"
+    can_create = False
+    can_edit = False
+    can_delete = False
 
 class ApiKeyAdmin(ModelView, model=ApiKey):
     column_list = [
@@ -78,6 +90,9 @@ class ApiKeyAdmin(ModelView, model=ApiKey):
     name = "API ключ"
     name_plural = "API ключи"
     icon = "fa-key"
+    can_create = False
+    can_edit = False
+    can_delete = False
 
 class UserSubscriptionAdmin(ModelView, model=UserSubscription):
     column_list = [
@@ -92,3 +107,7 @@ class UserSubscriptionAdmin(ModelView, model=UserSubscription):
     name = "Подписка пользователя"
     name_plural = "Подписки пользователей"
     icon = "fa-users"
+    can_create = False
+    can_edit = False
+    can_delete = False
+    
