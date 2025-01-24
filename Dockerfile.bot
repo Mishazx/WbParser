@@ -1,0 +1,17 @@
+# Dockerfile.bot
+FROM python:3.11
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the requirements file first
+COPY bot_requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r bot_requirements.txt
+
+# Copy the bot code
+COPY ./src/bot /app/
+
+# Command to run the bot with hot reloading
+CMD ["watchmedo", "auto-restart", "--patterns=*.py", "--recursive", "--", "python", "main.py"]
