@@ -1,23 +1,31 @@
+import logging
 from fastapi import FastAPI
+from sqlalchemy import select
 from sqladmin import Admin
 
-from admin import ProductAdmin, TaskLogAdmin, ApiKeyAdmin
-from db import Base, SyncEngine, AsyncEngine, AsyncSessionLocal
+from admin import ProductAdmin, TaskLogAdmin, ApiKeyAdmin, SubscriptionAdmin
+from crud import get_active_subscriptions, create_api_key
+from models import ApiKey
+from db import connect_with_retries, SyncEngine, AsyncEngine, AsyncSessionLocal
 from router import router_product
-from crud import get_active_subscriptions
-from tasks import schedule_product_updates
+from tasks import start_scheduler
+
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    async with AsyncEngine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await connect_with_retries()
     
     async with AsyncSessionLocal() as session:
+        existing_keys = await session.execute(select(ApiKey))
+        if not existing_keys.scalars().first():
+            await create_api_key(session, "Initial API Key")
+        
         subscriptions = await get_active_subscriptions(session)
-        for sub in subscriptions:
-            schedule_product_updates(sub.artikul)
+    
+    start_scheduler()
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -29,6 +37,7 @@ admin = Admin(app, engine=SyncEngine)
 admin.add_view(ProductAdmin)
 admin.add_view(TaskLogAdmin)
 admin.add_view(ApiKeyAdmin)
+admin.add_view(SubscriptionAdmin)
 
 if __name__ == "__main__":
     import uvicorn

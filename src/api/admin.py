@@ -1,8 +1,10 @@
 from sqladmin import ModelView, Admin
-from models import Product, TaskLog, ApiKey
+from models import Product, TaskLog, ApiKey, Subscription
 import secrets
 import uuid
 from typing import Any
+from db import AsyncSessionLocal
+from crud import create_api_key
 
 class ProductAdmin(ModelView, model=Product):
     column_list = [
@@ -59,9 +61,27 @@ class ApiKeyAdmin(ModelView, model=ApiKey):
         ApiKey.created_at: "Создан"
     }
     
-    # Полностью исключаем key из формы
     form_excluded_columns = [ApiKey.key, ApiKey.created_at]
     
-    def before_create(self, request: Any) -> None:
-        """Генерируем ключ перед созданием записи"""
-        request.form._data['key'] = str(uuid.uuid4())
+    can_delete = False
+    can_edit = False
+    can_create = False
+
+class SubscriptionAdmin(ModelView, model=Subscription):
+    column_list = [
+        Subscription.id,
+        Subscription.artikul,
+        Subscription.is_active,
+        Subscription.frequency_minutes,
+        Subscription.last_checked_at
+    ]
+    column_labels = {
+        Subscription.id: "ID",
+        Subscription.artikul: "Артикул",
+        Subscription.is_active: "Активен",
+        Subscription.frequency_minutes: "Частота (минуты)",
+        Subscription.last_checked_at: "Последняя проверка"
+    }
+    can_create = True
+    can_edit = True
+    can_delete = True
