@@ -11,3 +11,9 @@ class ProductResponse(BaseModel):
     total_quantity: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class SubscriptionResponse(BaseModel):
+    artikul: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
